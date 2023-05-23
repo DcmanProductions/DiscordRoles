@@ -119,4 +119,4 @@ run/
 
 
 # User added
-bot.properties
+**/bot.properties
