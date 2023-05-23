@@ -25,9 +25,10 @@ public final class DiscordRoles extends JavaPlugin
 		log.info("Starting Plugin");
 		config = getConfig();
 		config.addDefault("guild-id", 0L);
+		config.addDefault("banner-image", "https://raw.githubusercontent.com/DcmanProductions/DiscordRoles/master/docs/images/banner.webp");
+		config.addDefault("server-name", "Discord Roles Server");
 		config.options().copyDefaults(true);
 		saveDefaultConfig();
-		log.info("ID: "+DiscordRoles.config.getLong("guild-id"));
 		DiscordBot.start();
 		Objects.requireNonNull(getCommand("link")).setExecutor(new LinkCommand());
 		Objects.requireNonNull(getCommand("discordroles")).setExecutor(new BotRolesCommand());
