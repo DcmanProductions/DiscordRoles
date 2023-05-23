@@ -12,12 +12,18 @@ import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.interaction.component.ButtonInteractionEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.components.buttons.Button;
+import net.dv8tion.jda.api.requests.GatewayIntent;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Properties;
+import java.util.Set;
 
 public class DiscordBot
 {
@@ -29,6 +35,8 @@ public class DiscordBot
 	private static DiscordBot instance;
 	
 	private final JDA bot;
+	private HashMap<Long, Member> membersWithIds;
+	private HashMap<String, Member> membersWithNames;
 	
 	protected DiscordBot()
 	{
@@ -42,7 +50,7 @@ public class DiscordBot
 			e.printStackTrace();
 		}
 		
-		this.bot = JDABuilder.createDefault(properties.getProperty("token")).build();
+		this.bot = JDABuilder.createDefault(properties.getProperty("token")).enableIntents(GatewayIntent.GUILD_MEMBERS).build();
 		this.bot.addEventListener(new ListenerAdapter()
 		{
 			@Override
@@ -54,12 +62,15 @@ public class DiscordBot
 					Guild guild = getGuild();
 					if (guild != null)
 					{
-						guild.addRoleToMember(user, getOrCreateRole());
+						guild.addRoleToMember(user, getOrCreateRole()).complete();
+						event.reply("Account linked successfully!").complete();
 					}
 				}
-				super.onButtonInteraction(event);
 			}
 		});
+		membersWithIds = new HashMap<>();
+		membersWithNames = new HashMap<>();
+		refreshMembersList();
 	}
 	
 	/**
@@ -71,10 +82,10 @@ public class DiscordBot
 	 */
 	public MessageResponse link(String mc, String discord)
 	{
-		Optional<User> userOptional = bot.getUsersByName(discord, true).stream().findFirst();
-		if (userOptional.isPresent())
+		Member member = getMember(discord);
+		if (member != null)
 		{
-			User user = userOptional.get();
+			User user = member.getUser();
 			
 			@Nullable Guild guild = getGuild();
 			if (guild != null)
@@ -84,16 +95,15 @@ public class DiscordBot
 						.setDescription("Hello %s, would you like to link your minecraft account with %s?".formatted(mc, guild.getName()));
 				
 				Button accept = Button.primary("accept-link-button", "Link Account!");
-				Button learnmore = Button.link("https://github.com/dcmanProductions/discordroles", "Learn More...");
+				Button learnmore = Button.link("https://github.com/DcmanProductions/DiscordRoles", "Learn More...");
 				
 				embedBuilder.setImage(DiscordRoles.config.getString("banner-image"));
 				user.openPrivateChannel().queue(channel ->
 				{
 					channel.sendMessageEmbeds(embedBuilder.build()).setActionRow(accept, learnmore).queue();
 				});
-				
+				return new MessageResponse("User linked", true);
 			}
-			return new MessageResponse("User linked", true);
 		}
 		return new MessageResponse("Unable to find user: %s".formatted(discord), false);
 	}
@@ -116,7 +126,8 @@ public class DiscordBot
 				Permission.MODERATE_MEMBERS,
 				Permission.CREATE_INSTANT_INVITE,
 				Permission.USE_APPLICATION_COMMANDS,
-				Permission.MESSAGE_SEND
+				Permission.MESSAGE_SEND,
+				Permission.VIEW_GUILD_INSIGHTS
 		);
 	}
 	
@@ -131,8 +142,8 @@ public class DiscordBot
 		Guild guild = getGuild();
 		if (guild != null)
 		{
-			List<Member> members = guild.getMembers();
-			for (Member member : members)
+			if (membersWithIds.size() == 0) refreshMembersList();
+			for (Member member : membersWithIds.values())
 			{
 				if (!member.getUser().isBot() && !member.getUser().isSystem())
 				{
@@ -144,6 +155,63 @@ public class DiscordBot
 		return names;
 	}
 	
+	public void refreshMembersList()
+	{
+		refreshMembersList(null);
+	}
+	
+	public void refreshMembersList(@Nullable CommandSender sender)
+	{
+		membersWithIds.clear();
+		Guild guild = getGuild();
+		if (guild != null)
+		{
+			DiscordRoles.log.warning("%s[Discord Roles] %sRefreshing discord members list!".formatted(ChatColor.GREEN, ChatColor.GOLD));
+			for (Member member : getGuild().loadMembers().get())
+			{
+				membersWithIds.put(member.getIdLong(), member);
+				membersWithNames.put(member.getUser().getName(), member);
+			}
+			if (sender != null)
+			{
+				DiscordRoles.sendMessage(sender, "%sLoaded %s%d %sMembers".formatted(ChatColor.GOLD, ChatColor.GREEN, membersWithIds.size(), ChatColor.GOLD));
+			}
+		}
+		
+	}
+	
+	public @Nullable Member getMember(long id)
+	{
+		Guild guild = getGuild();
+		if (guild != null && membersWithIds.containsKey(id))
+		{
+			return membersWithIds.get(id);
+		}
+		
+		return null;
+	}
+	
+	public @Nullable Member getMember(String name)
+	{
+		Guild guild = getGuild();
+		if (guild != null && membersWithNames.containsKey(name))
+		{
+			return membersWithNames.get(name);
+		}
+		
+		return null;
+	}
+	
+	public boolean doesMemberExist(String name)
+	{
+		return getMember(name) != null;
+	}
+	
+	public boolean doesMemberExist(int id)
+	{
+		return getMember(id) != null;
+	}
+	
 	public @Nullable Guild getGuild()
 	{
 		long guildId = DiscordRoles.config.getLong("guild-id");
@@ -152,8 +220,12 @@ public class DiscordBot
 			DiscordRoles.log.warning("You must set your discords guild id before using this!");
 			return null;
 		}
-		
-		return bot.getGuildById(guildId);
+		Guild guild = bot.getGuildById(guildId);
+		if (guild == null)
+		{
+			DiscordRoles.log.severe("Unable to find guild from id: " + guildId);
+		}
+		return guild;
 	}
 	
 	/**
