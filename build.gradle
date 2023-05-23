@@ -7,6 +7,7 @@ version = '0.0.1'
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
     maven {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
@@ -19,7 +20,16 @@ repositories {
 
 dependencies {
     compileOnly "org.spigotmc:spigot-api:1.19.3-R0.1-SNAPSHOT"
+    implementation  "com.github.DV8FromTheWorld:JDA:${jda}"
 }
+
+jar {
+    duplicatesStrategy = "INCLUDE"
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
 
 def targetJavaVersion = 17
 java {
@@ -44,4 +54,24 @@ processResources {
     filesMatching('plugin.yml') {
         expand props
     }
+}
+
+tasks.register('copyBuildArtifacts', Copy) {
+    println("Copying build artifacts to dist directory")
+    var distDir = layout.projectDirectory.dir("/run/plugins");
+    var build = layout.projectDirectory.dir("/build/libs/");
+    println("> FROM: ${build}, TO: ${layout.projectDirectory.dir("dist")}");
+    from build
+    include "*.jar"
+    into distDir
+}
+tasks.named("copyBuildArtifacts") {
+    group = "build";
+    description = "Copys build artifacts from individual build directories to root dist directory"
+    dependsOn("build")
+}
+tasks.named("build") { finalizedBy("copyBuildArtifacts") }
+configure("copyBuildArtifacts") {
+    group = "build";
+    description = "Copys build artifacts from individual build directories to root dist directory"
 }
