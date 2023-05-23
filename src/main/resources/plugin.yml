@@ -6,9 +6,22 @@ api-version: 1.19
 commands:
   link:
     description: This will link your minecraft account to your discord account.
-    usage: /link <discord username>
+    usage: /link <discord username | discord id>
     permission: discordroles.general
   discordroles:
+    aliases:
+      - roles
+      - discord
+      - dr
     description: This manages your discord bot settings
-    usage: /discordroles [<invite | guild>]
+    usage: /discordroles [<option>]
     permission: discordroles.admin
+    invite:
+      description: This will generate a discord bot invite code to add the bot to your server.
+      usage: /discordroles invite
+    guild:
+      description: This is used to set your server's guild id aka the server id
+      usage: /discordroles guild 0123456789
+    reload:
+      description: This will reload the list of members on the discord server.
+      usage: /discordroles reload
