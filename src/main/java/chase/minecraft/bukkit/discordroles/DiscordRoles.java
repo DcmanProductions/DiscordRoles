@@ -4,6 +4,8 @@ import chase.minecraft.bukkit.discordroles.bot.DiscordBot;
 import chase.minecraft.bukkit.discordroles.command.BotRolesCommand;
 import chase.minecraft.bukkit.discordroles.command.LinkCommand;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -39,6 +41,11 @@ public final class DiscordRoles extends JavaPlugin
 	{
 		DiscordBot.getInstance().stop();
 		log.warning("Stopping Plugin");
+	}
+	
+	public static void sendMessage(CommandSender sender, String message)
+	{
+		sender.sendMessage("%s[Discord Roles] %s%s".formatted(ChatColor.BLUE, ChatColor.RESET, message));
 	}
 	
 }
