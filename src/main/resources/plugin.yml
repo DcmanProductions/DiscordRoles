@@ -2,3 +2,13 @@ name: DiscordRoles
 version: '${version}'
 main: chase.minecraft.bukkit.discordroles.DiscordRoles
 api-version: 1.19
+
+commands:
+  link:
+    description: This will link your minecraft account to your discord account.
+    usage: /link <discord username>
+    permission: discordroles.general
+  discordroles:
+    description: This manages your discord bot settings
+    usage: /discordroles [<invite | guild>]
+    permission: discordroles.admin
