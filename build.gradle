@@ -30,6 +30,13 @@ jar {
     }
 }
 
+sourceSets{
+    main{
+        resources{
+            srcDirs = ['src/main/resources']
+        }
+    }
+}
 
 def targetJavaVersion = 17
 java {
