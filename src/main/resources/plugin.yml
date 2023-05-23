@@ -1,0 +1,4 @@
+name: DiscordRoles
+version: '${version}'
+main: chase.minecraft.bukkit.discordroles.DiscordRoles
+api-version: 1.19
